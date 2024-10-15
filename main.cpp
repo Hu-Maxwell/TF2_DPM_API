@@ -20,7 +20,7 @@ size_t WriteCallback(void* contents, size_t size, size_t nmemb, std::string* buf
 std::vector<int> getTotalLogs() {
     // playerID is NOT playerUID
     std::vector<int> logIDs; 
-    std::string playerID = "76561198391933308"; 
+    std::string playerID = "76561197976753866"; 
 
     // http://logs.tf/api/v1/log?title=X&uploader=Y&player=Z&limit=N&offset=N 
     // should be limited if not using all of it! else it will be slow.  
@@ -48,7 +48,9 @@ std::vector<int> getTotalLogs() {
             totalLogs = jsonResponse["total"]; 
 
             for(int i = 0; i < totalLogs - 1; i++) {
-                logIDs.push_back(jsonResponse["logs"][i]["id"]);
+                if(jsonResponse["logs"][i]["players"] == 12) {
+                    logIDs.push_back(jsonResponse["logs"][i]["id"]);
+                }
             }
          }
  
@@ -60,21 +62,21 @@ std::vector<int> getTotalLogs() {
 }
 
 std::string getDPM() {
-    std::string playerUID = "[U:1:431667580]"; 
+    std::string playerUID = "[U:1:16488138]"; 
     std::vector<int> logIDs = getTotalLogs();
 
     // std::string DPMresults = ""; 
 
-    const int totalLogs = logIDs.size(); // ends 1 log before first log
-    const int batchSize = 8; 
+    const size_t totalLogs = logIDs.size(); // ends 1 log before first log
+    const size_t batchSize = 8; 
 
     std::vector<int> DPMvector; 
 
     CURLM* multi_handle;
     multi_handle = curl_multi_init();
 
-    for (int start = 0; start < totalLogs; start += batchSize) {
-        int curBatchSize = 0;
+    for (size_t start = 0; start < totalLogs; start += batchSize) {
+        size_t curBatchSize = 0;
         if (batchSize < (logIDs.size() - start)) {
             curBatchSize = batchSize; 
         } else {
@@ -107,28 +109,36 @@ std::string getDPM() {
             curl_easy_cleanup(curls[i]);
 
             auto jsonResponse = nlohmann::json::parse(responseStrings[i]);
+            auto players = jsonResponse["players"];
             auto player = jsonResponse["players"][playerUID]; 
             int DPM = player["dapm"];
-            DPMresults = DPMresults + "Log ID " + std::to_string(logIDs[start + i]) + ": DPM is " + std::to_string(DPM) + "\n";
-
 
             // if time is > 1200 secs, and not on medic, then add 
             if(player["class_stats"][0]["type"] != "medic" && player["class_stats"][0]["total_time"] > 1200) {
                 DPMvector.push_back(DPM);
+                DPMresults = DPMresults + "Log ID " + std::to_string(logIDs[start + i]) + ": DPM is " + std::to_string(DPM) + "\n";
             }
+
+            // get dpm of all other players that have played > 1200 secs and are not on medic
+            // get the average dpm of all of them
+            
+            for (nlohmann::json::iterator it = players.begin(); it != players.end(); ++it) {
+                std::cout << "Key: " << it.key() << ", Value: " << it.value()["team"] << std::endl;
+            }
+
+
+
         }
+
         std::cout << DPMresults << std::endl;
 
         std::this_thread::sleep_for(std::chrono::seconds(1)); 
     }
 
     curl_multi_cleanup(multi_handle); 
+
     return "done"; 
 }
-
-// std::vector<int> sortDPM() {
-
-// }
 
 int main() {
     std::string biag = getDPM(); 
