@@ -65,8 +65,6 @@ std::string getDPM() {
     std::string playerUID = "[U:1:16488138]"; 
     std::vector<int> logIDs = getTotalLogs();
 
-    // std::string DPMresults = ""; 
-
     const size_t totalLogs = logIDs.size(); // ends 1 log before first log
     const size_t batchSize = 8; 
 
@@ -109,25 +107,23 @@ std::string getDPM() {
             curl_easy_cleanup(curls[i]);
 
             auto jsonResponse = nlohmann::json::parse(responseStrings[i]);
-            auto players = jsonResponse["players"];
-            auto player = jsonResponse["players"][playerUID]; 
-            int DPM = player["dapm"];
 
-            // if time is > 1200 secs, and not on medic, then add 
-            if(player["class_stats"][0]["type"] != "medic" && player["class_stats"][0]["total_time"] > 1200) {
-                DPMvector.push_back(DPM);
-                DPMresults = DPMresults + "Log ID " + std::to_string(logIDs[start + i]) + ": DPM is " + std::to_string(DPM) + "\n";
+            auto allPlayers = jsonResponse["players"];
+            int userDPM = jsonResponse["players"][playerUID]["dapm"];
+ 
+            std::vector<int> allPlayerDPM; 
+            for (nlohmann::json::iterator it = allPlayers.begin(); it != allPlayers.end(); ++it) {
+                auto player = it.value();
+                if(player["class_stats"][0]["type"] != "medic" && player["class_stats"][0]["total_time"] > 1200) {
+                    allPlayerDPM.push_back(player["dapm"]); 
+                }
             }
 
-            // get dpm of all other players that have played > 1200 secs and are not on medic
-            // get the average dpm of all of them
-            
-            for (nlohmann::json::iterator it = players.begin(); it != players.end(); ++it) {
-                std::cout << "Key: " << it.key() << ", Value: " << it.value()["team"] << std::endl;
+            if (!allPlayerDPM.empty()) { 
+                float avgDPM = std::accumulate(allPlayerDPM.begin(), allPlayerDPM.end(), 0.0f) / allPlayerDPM.size();
+                float ratioDPM = userDPM / avgDPM; 
+                std::cout << ratioDPM << std::endl; 
             }
-
-
-
         }
 
         std::cout << DPMresults << std::endl;
