@@ -49,7 +49,8 @@ std::vector<std::string> getTotalLogs() {
             totalLogs = jsonResponse["total"]; 
 
             for(int i = 0; i < totalLogs - 1; i++) {
-                if(jsonResponse["logs"][i]["players"] == 12 && jsonResponse["logs"][i]["id"] > 435070) {
+                if(jsonResponse["logs"][i]["players"] == 12 && jsonResponse["logs"][i]["id"] > 2672567) { 
+                    // sorts out logs older than sept 1, 2020 
                     int logID = jsonResponse["logs"][i]["id"]; 
                     logIDs.push_back(std::to_string(logID));
                 }
