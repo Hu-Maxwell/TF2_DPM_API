@@ -18,10 +18,10 @@ size_t WriteCallback(void* contents, size_t size, size_t nmemb, std::string* buf
     return newLength;
 }
 
-std::vector<int> getTotalLogs() {
+std::vector<std::string> getTotalLogs() {
     // playerID is NOT playerUID
-    std::vector<int> logIDs; 
-    std::string playerID = "76561198283462369"; 
+    std::vector<std::string> logIDs; 
+    std::string playerID = "76561198045822284"; 
 
     // http://logs.tf/api/v1/log?title=X&uploader=Y&player=Z&limit=N&offset=N 
     // should be limited if not using all of it! else it will be slow.  
@@ -50,7 +50,8 @@ std::vector<int> getTotalLogs() {
 
             for(int i = 0; i < totalLogs - 1; i++) {
                 if(jsonResponse["logs"][i]["players"] == 12 && jsonResponse["logs"][i]["id"] > 435070) {
-                    logIDs.push_back(jsonResponse["logs"][i]["id"]);
+                    int logID = jsonResponse["logs"][i]["id"]; 
+                    logIDs.push_back(std::to_string(logID));
                 }
             }
          }
@@ -62,14 +63,14 @@ std::vector<int> getTotalLogs() {
     return logIDs; 
 }
 
-std::vector<std::pair<int, float>> getDPM() {
-    std::string playerUID = "[U:1:323196641]"; 
-    std::vector<int> logIDs = getTotalLogs();
+std::vector<std::pair<std::string, float>> getDPM() {
+    std::string playerUID = "[U:1:85556556]"; 
+    std::vector<std::string> logIDs = getTotalLogs();
 
-    const size_t totalLogs = logIDs.size(); // ends 1 log before first log
+    const size_t totalLogs = logIDs.size(); 
     const size_t batchSize = 8; 
 
-    std::vector<std::pair<int, float>> ratioVectorDPM; 
+    std::vector<std::pair<std::string, float>> ratioVectorDPM; 
 
     CURLM* multi_handle;
     multi_handle = curl_multi_init();
@@ -86,8 +87,8 @@ std::vector<std::pair<int, float>> getDPM() {
         std::vector<std::string> responseStrings(curBatchSize);  
 
         for (int i = 0; i < curBatchSize; i++) {
-            int logID = logIDs[start + i];
-            std::string apiUrl = "https://logs.tf/api/v1/log/" + std::to_string(logID);
+            std::string logID = logIDs[start + i];
+            std::string apiUrl = "https://logs.tf/api/v1/log/" + logID;
 
             curls[i] = curl_easy_init();
             curl_easy_setopt(curls[i], CURLOPT_URL, apiUrl.c_str());
@@ -122,7 +123,7 @@ std::vector<std::pair<int, float>> getDPM() {
             if (!allPlayerDPM.empty() && jsonResponse["players"][playerUID]["class_stats"][0]["type"] != "medic") { 
                 float avgDPM = std::accumulate(allPlayerDPM.begin(), allPlayerDPM.end(), 0.0f) / allPlayerDPM.size();
                 float ratioDPM = userDPM / avgDPM; 
-                // std::cout << "Log ID: " << logIDs[start + i] << ", DPM: " <<  ratioDPM << std::endl;
+                std::cout << "Log ID: " << logIDs[start + i] << ", DPM: " <<  ratioDPM << std::endl;
                 ratioVectorDPM.push_back(std::make_pair(logIDs[start + i], ratioDPM));  
             }
         }
@@ -136,14 +137,13 @@ std::vector<std::pair<int, float>> getDPM() {
 }
 
 int main() {
-    std::vector<std::pair<int, float>> ratioVectorDPM = getDPM(); 
+    std::vector<std::pair<std::string, float>> ratioVectorDPM = getDPM(); 
 
-    std::sort(ratioVectorDPM.begin(), ratioVectorDPM.end(), 
-        [](const std::pair<int, float>& a, const std::pair<int, float>& b) {
+    std::sort(ratioVectorDPM.begin(), ratioVectorDPM.end(), [](const std::pair<std::string, float>& a, const std::pair<std::string, float>& b) {
             return a.second > b.second; 
-        });
+    });
 
-    for(const std::pair<int, float>& ratioDPM : ratioVectorDPM) {
+    for(const std::pair<std::string, float>& ratioDPM : ratioVectorDPM) {
         std::cout << "https://logs.tf/" << ratioDPM.first << ", DPM: " <<  ratioDPM.second << std::endl; 
     }
     std::cout << "fin" << std::endl; 
