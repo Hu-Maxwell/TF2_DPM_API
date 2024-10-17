@@ -28,7 +28,8 @@ std::vector<std::string> getTotalLogs() {
  
     curl_global_init(CURL_GLOBAL_DEFAULT);
 
-    int totalLogs = 0;
+    // 
+    int totalLogs = 0; 
     if(curl) {
         curl_easy_setopt(curl, CURLOPT_URL, apiUrl.c_str());
         curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
